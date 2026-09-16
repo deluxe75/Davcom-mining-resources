@@ -1,0 +1,6 @@
+{
+  "name": "DAVCOM MINING RESOURCES NIG LTD",
+  "description": "Corporate website and operations portal for Davcom Mining Resources Nig Ltd — Leaders in mining, rock drilling & blasting, quarry management, borehole drilling, soil testing, civil works, and engineering.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

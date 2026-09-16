@@ -1,0 +1,46 @@
+# DAVCOM MINING RESOURCES NIG LTD - Apache Configuration
+Options -Indexes
+RewriteEngine On
+
+# Handle Authorization Header across Apache/FastCGI/PHP-FPM
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Allow CORS Preflight (handled in PHP scripts as well)
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Origin, Accept"
+</IfModule>
+
+# Friendly REST API Routing
+# Services
+RewriteRule ^api/services/?$ api/services/index.php [QSA,L]
+RewriteRule ^api/services/([a-zA-Z0-9_-]+)/?$ api/services/show.php?slug=$1 [QSA,L]
+
+# Projects
+RewriteRule ^api/projects/?$ api/projects/index.php [QSA,L]
+RewriteRule ^api/projects/([a-zA-Z0-9_-]+)/?$ api/projects/show.php?slug=$1 [QSA,L]
+
+# Equipment
+RewriteRule ^api/equipment/?$ api/equipment/index.php [QSA,L]
+
+# Gallery
+RewriteRule ^api/gallery/?$ api/gallery/index.php [QSA,L]
+RewriteRule ^api/gallery/upload/?$ api/gallery/upload.php [QSA,L]
+
+# Contact
+RewriteRule ^api/contact/?$ api/contact/create.php [QSA,L]
+RewriteRule ^api/contact/messages/?$ api/contact/index.php [QSA,L]
+
+# Service Requests
+RewriteRule ^api/service-requests/?$ api/service-requests/create.php [QSA,L]
+RewriteRule ^api/service-requests/all/?$ api/service-requests/index.php [QSA,L]
+
+# Auth
+RewriteRule ^api/auth/login/?$ api/auth/login.php [QSA,L]
+RewriteRule ^api/auth/logout/?$ api/auth/logout.php [QSA,L]
+RewriteRule ^api/auth/me/?$ api/auth/me.php [QSA,L]
+
+# Dashboard
+RewriteRule ^api/dashboard/stats/?$ api/dashboard/stats.php [QSA,L]
