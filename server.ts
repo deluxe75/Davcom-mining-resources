@@ -9,51 +9,121 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = 3000;
-const PHP_PORT = 8000;
+const PHP_PORT = 8888;
 
-// 1. Ensure MariaDB (MySQL) is running
+// 1. Check for MariaDB/MySQL if installed
 try {
-  const check = execSync('mariadb -e "SELECT 1;" 2>&1 || true').toString();
-  if (!check.includes('1')) {
-    console.log('[MySQL] Starting MariaDB service...');
-    execSync("nohup /usr/bin/mariadbd-safe --datadir='/var/lib/mysql' --nowatch > /dev/null 2>&1 &");
-    execSync('sleep 2');
+  const hasMysql = execSync('command -v mariadb || command -v mysql || true').toString().trim();
+  if (hasMysql) {
+    const check = execSync('mariadb -e "SELECT 1;" 2>&1 || mysql -e "SELECT 1;" 2>&1 || true').toString();
+    if (!check.includes('1') && execSync('command -v mariadbd-safe || true').toString().trim()) {
+      console.log('[MySQL] Starting MariaDB service...');
+      execSync("nohup /usr/bin/mariadbd-safe --datadir='/var/lib/mysql' --nowatch > /dev/null 2>&1 &");
+      execSync('sleep 2');
+    }
   }
-  console.log('[MySQL] MariaDB database is connected and active.');
-} catch (err) {
-  console.warn('[MySQL] Warning starting MariaDB:', err);
+} catch (_) {}
+
+// 2. Start PHP Backend Built-in Web Server with auto-recovery and port cleanup
+let phpProcess: any = null;
+let isShuttingDown = false;
+let respawnTimer: NodeJS.Timeout | null = null;
+
+function cleanupStalePhp() {
+  try {
+    execSync(`fuser -k ${PHP_PORT}/tcp 2>/dev/null || true`);
+    execSync(`pkill -f "php -S 127.0.0.1:${PHP_PORT}" 2>/dev/null || true`);
+  } catch (_) {}
 }
 
-// 2. Start PHP Backend Built-in Web Server
-const phpProcess = spawn('php', ['-S', `127.0.0.1:${PHP_PORT}`, 'backend/router.php'], {
-  cwd: __dirname,
-  stdio: 'inherit',
-});
+function startPhpBackend() {
+  if (isShuttingDown) return;
 
-phpProcess.on('error', (err) => {
-  console.error('[PHP] Failed to start PHP server:', err);
-});
+  // Clear any existing timer
+  if (respawnTimer) {
+    clearTimeout(respawnTimer);
+    respawnTimer = null;
+  }
 
-process.on('exit', () => {
+  // Ensure no stale orphan PHP process is binding port 8888
+  cleanupStalePhp();
+
   try {
-    phpProcess.kill();
+    phpProcess = spawn('php', ['-S', `127.0.0.1:${PHP_PORT}`, 'backend/router.php'], {
+      cwd: __dirname,
+      stdio: 'inherit',
+    });
+
+    phpProcess.on('error', (err: any) => {
+      console.error('[PHP] Failed to start PHP server:', err.message);
+    });
+
+    phpProcess.on('exit', (code: number, signal: string) => {
+      if (isShuttingDown) return;
+      console.warn(`[PHP] Server process exited with code ${code}, signal ${signal}. Respawning in 3s...`);
+      respawnTimer = setTimeout(() => {
+        startPhpBackend();
+      }, 3000);
+    });
+  } catch (err) {
+    console.error('[PHP] Spawning error:', err);
+  }
+}
+
+startPhpBackend();
+
+function handleShutdown() {
+  isShuttingDown = true;
+  if (respawnTimer) {
+    clearTimeout(respawnTimer);
+  }
+  try {
+    if (phpProcess) {
+      phpProcess.kill('SIGTERM');
+    }
   } catch (_) {}
+  cleanupStalePhp();
+}
+
+process.on('exit', handleShutdown);
+process.on('SIGINT', () => {
+  handleShutdown();
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  handleShutdown();
+  process.exit(0);
 });
 
 async function startServer() {
   const app = express();
 
-  // 3. Reverse Proxy API and Uploads to PHP Backend
+  // Static uploads served directly by Express for high speed & zero latency
+  app.use('/uploads', express.static(path.join(__dirname, 'backend/uploads')));
+  app.use('/backend/uploads', express.static(path.join(__dirname, 'backend/uploads')));
+
+  // 3. Reverse Proxy API to PHP Backend with JSON error shielding
   const phpProxy = createProxyMiddleware({
     target: `http://127.0.0.1:${PHP_PORT}`,
     changeOrigin: true,
     ws: false,
+    on: {
+      error: (err: any, _req: any, res: any) => {
+        console.error('[Proxy Error]', err?.message || err);
+        if (!res.headersSent && res.writeHead) {
+          res.writeHead(503, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: false,
+            message: 'Backend server is initializing, please refresh momentarily.',
+            data: null
+          }));
+        }
+      }
+    }
   });
 
   app.use('/api', phpProxy);
   app.use('/backend/api', phpProxy);
-  app.use('/uploads', phpProxy);
-  app.use('/backend/uploads', phpProxy);
 
   // Health check
   app.get('/health', (req, res) => {

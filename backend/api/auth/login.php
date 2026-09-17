@@ -18,7 +18,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 }
 
 $db = Database::getConnection();
-$stmt = $db->prepare('SELECT id, name, email, password FROM admins WHERE email = :email LIMIT 1');
+$stmt = $db->prepare('SELECT id, name, email, password, role, designation FROM admins WHERE email = :email LIMIT 1');
 $stmt->execute(['email' => $email]);
 $admin = $stmt->fetch();
 
@@ -40,7 +40,9 @@ sendResponse(true, [
     'admin' => [
         'id' => (int)$admin['id'],
         'name' => $admin['name'],
-        'email' => $admin['email']
+        'email' => $admin['email'],
+        'role' => $admin['role'] ?? 'super_admin',
+        'designation' => $admin['designation'] ?? 'Administrator'
     ],
     'message' => 'Login successful'
 ], 200);

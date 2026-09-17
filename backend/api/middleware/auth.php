@@ -22,7 +22,7 @@ function requireAdminAuth(): array {
     }
 
     $db = Database::getConnection();
-    $stmt = $db->prepare('SELECT id, name, email, created_at FROM admins WHERE token = :token LIMIT 1');
+    $stmt = $db->prepare('SELECT id, name, email, role, designation, created_at FROM admins WHERE token = :token LIMIT 1');
     $stmt->execute(['token' => $token]);
     $admin = $stmt->fetch();
 
@@ -30,5 +30,17 @@ function requireAdminAuth(): array {
         sendResponse(false, 'Unauthorized or session expired. Please log in again.', 401);
     }
 
+    if (empty($admin['role'])) {
+        $admin['role'] = 'super_admin';
+    }
+
+    return $admin;
+}
+
+function requireSuperAdminAuth(): array {
+    $admin = requireAdminAuth();
+    if (($admin['role'] ?? '') !== 'super_admin') {
+        sendResponse(false, 'Forbidden. Super Administrator privileges required.', 403);
+    }
     return $admin;
 }

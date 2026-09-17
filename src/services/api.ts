@@ -8,6 +8,9 @@ import {
   AdminUser,
   DashboardStats,
   ApiResponse,
+  CompanySettings,
+  SystemDiagnostics,
+  EmailLog,
 } from '../types';
 
 const API_BASE = '/api';
@@ -18,18 +21,38 @@ function getAuthHeader(): Record<string, string> {
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
-  const contentType = res.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
-    const json: ApiResponse<T> = await res.json();
-    if (!res.ok || json.success === false) {
-      throw new Error(json.message || 'API request failed');
+  const text = await res.text();
+  const contentType = res.headers.get('content-type') || '';
+
+  if (text.trim().length === 0) {
+    if (!res.ok) {
+      throw new Error(`Server returned HTTP ${res.status}`);
     }
-    return json.data as T;
+    return {} as T;
   }
+
+  // Attempt JSON parsing if indicated by header or starting with { or [
+  const isLikelyJson = contentType.includes('application/json') || text.trim().startsWith('{') || text.trim().startsWith('[');
+  if (isLikelyJson) {
+    try {
+      const json: ApiResponse<T> = JSON.parse(text);
+      if (!res.ok || json.success === false) {
+        throw new Error(json.message || `Request failed with status ${res.status}`);
+      }
+      return json.data !== undefined ? (json.data as T) : (json as unknown as T);
+    } catch (err: any) {
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}: ${text.slice(0, 100)}`);
+      }
+      // If parsing failed but was not JSON
+      throw new Error(err?.message ? `Invalid response format: ${err.message}` : 'Invalid JSON response from server');
+    }
+  }
+
   if (!res.ok) {
-    throw new Error(`Server returned HTTP ${res.status}`);
+    throw new Error(`Server returned HTTP ${res.status}: ${text.slice(0, 100)}`);
   }
-  return (await res.text()) as unknown as T;
+  return text as unknown as T;
 }
 
 export const api = {
@@ -259,13 +282,38 @@ export const api = {
     description: string;
     preferred_contact_method?: string;
     message?: string;
-  }): Promise<{ request_id: number; message: string }> {
+  }): Promise<{ request_id: number; message: string; email_dispatched?: boolean; company_recipients?: string[] }> {
     const res = await fetch(`${API_BASE}/service-requests`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return handleResponse<{ request_id: number; message: string }>(res);
+    return handleResponse<{ request_id: number; message: string; email_dispatched?: boolean; company_recipients?: string[] }>(res);
+  },
+
+  async resendServiceRequestEmail(id: number, custom_email?: string): Promise<{ message: string; recipients?: string[]; result?: any }> {
+    const res = await fetch(`${API_BASE}/service-requests/resend-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify({ id, custom_email }),
+    });
+    return handleResponse<{ message: string; recipients?: string[]; result?: any }>(res);
+  },
+
+  async sendTestEmail(target_email?: string): Promise<{ message: string; target_email: string; result?: any }> {
+    const res = await fetch(`${API_BASE}/admin/test-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify({ target_email }),
+    });
+    return handleResponse<{ message: string; target_email: string; result?: any }>(res);
+  },
+
+  async getEmailLogs(limit: number = 50): Promise<EmailLog[]> {
+    const res = await fetch(`${API_BASE}/admin/email-logs?limit=${limit}`, {
+      headers: { ...getAuthHeader() },
+    });
+    return handleResponse<EmailLog[]>(res);
   },
 
   async getServiceRequests(status?: string): Promise<ServiceRequest[]> {
@@ -338,5 +386,60 @@ export const api = {
       headers: { ...getAuthHeader() },
     });
     return handleResponse<DashboardStats>(res);
+  },
+
+  // Super Admin Methods
+  async getAdminUsers(): Promise<AdminUser[]> {
+    const res = await fetch(`${API_BASE}/admin/users`, {
+      headers: { ...getAuthHeader() },
+    });
+    return handleResponse<AdminUser[]>(res);
+  },
+
+  async createAdminUser(data: {
+    name: string;
+    email: string;
+    password: string;
+    role: string;
+    designation?: string;
+  }): Promise<{ user: AdminUser; message: string }> {
+    const res = await fetch(`${API_BASE}/admin/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<{ user: AdminUser; message: string }>(res);
+  },
+
+  async deleteAdminUser(id: number): Promise<{ message: string }> {
+    const res = await fetch(`${API_BASE}/admin/delete-user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify({ id }),
+    });
+    return handleResponse<{ message: string }>(res);
+  },
+
+  async getCompanySettings(): Promise<CompanySettings> {
+    const res = await fetch(`${API_BASE}/admin/settings`, {
+      headers: { ...getAuthHeader() },
+    });
+    return handleResponse<CompanySettings>(res);
+  },
+
+  async updateCompanySettings(settings: Partial<CompanySettings>): Promise<{ settings: CompanySettings; message: string }> {
+    const res = await fetch(`${API_BASE}/admin/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify(settings),
+    });
+    return handleResponse<{ settings: CompanySettings; message: string }>(res);
+  },
+
+  async getSystemDiagnostics(): Promise<SystemDiagnostics> {
+    const res = await fetch(`${API_BASE}/admin/system`, {
+      headers: { ...getAuthHeader() },
+    });
+    return handleResponse<SystemDiagnostics>(res);
   },
 };

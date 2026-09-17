@@ -5,8 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 
 export const AdminLoginPage: React.FC = () => {
-  const [email, setEmail] = useState('admin@davcom.com');
-  const [password, setPassword] = useState('admin123456');
+  const [email, setEmail] = useState(() => localStorage.getItem('davcom_admin_email') || '');
+  const [password, setPassword] = useState('');
+  const [rememberEmail, setRememberEmail] = useState(true);
+  const [showHelp, setShowHelp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -27,6 +29,12 @@ export const AdminLoginPage: React.FC = () => {
     setSubmitting(true);
 
     try {
+      if (rememberEmail) {
+        localStorage.setItem('davcom_admin_email', email);
+      } else {
+        localStorage.removeItem('davcom_admin_email');
+      }
+
       await login(email, password);
       navigate('/admin', { replace: true });
     } catch (err: any) {
@@ -47,7 +55,7 @@ export const AdminLoginPage: React.FC = () => {
           <ArrowLeft className="w-4 h-4" />
           <span>Return to DAVCOM Website</span>
         </Link>
-        <span className="text-[11px] text-slate-500 font-mono">Restricted Access</span>
+        <span className="text-[11px] text-slate-500 font-mono">Enterprise Portal</span>
       </div>
 
       <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
@@ -60,7 +68,7 @@ export const AdminLoginPage: React.FC = () => {
             DAVCOM Management Portal
           </h1>
           <p className="text-xs text-slate-400">
-            Secure administrative access for operations & database control.
+            Authorized administrative access for operations, quotes, and corporate records.
           </p>
         </div>
 
@@ -74,7 +82,7 @@ export const AdminLoginPage: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-              Authorized Email
+              Authorized Corporate Email
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
@@ -84,14 +92,14 @@ export const AdminLoginPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@davcom.com"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono"
               />
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-              Secure Password
+              Password
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
@@ -101,16 +109,38 @@ export const AdminLoginPage: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500"
               />
             </div>
           </div>
 
-          {/* Quick credential reminder */}
-          <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded text-[11px] text-slate-400">
-            <span className="text-amber-400 font-semibold block mb-0.5">Authorized Credentials:</span>
-            <span>Email: <strong>admin@davcom.com</strong> | Password: <strong>admin123456</strong></span>
+          <div className="flex items-center justify-between pt-1">
+            <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-400 hover:text-slate-300">
+              <input
+                type="checkbox"
+                checked={rememberEmail}
+                onChange={(e) => setRememberEmail(e.target.checked)}
+                className="w-3.5 h-3.5 rounded bg-slate-950 border-slate-700 text-amber-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+              />
+              <span>Remember email</span>
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setShowHelp(!showHelp)}
+              className="text-[11px] text-amber-400/80 hover:text-amber-400 transition-colors"
+            >
+              Access Help
+            </button>
           </div>
+
+          {showHelp && (
+            <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-xl text-[11px] text-slate-400 space-y-1">
+              <span className="text-amber-400 font-semibold block">System Access Protocol:</span>
+              <p>Primary Director Sign-in: <strong className="text-white">admin@davcom.com</strong> (or operational account registered in Super Admin Console).</p>
+              <p className="text-[10px] text-slate-500">Initial Master Key: <span className="font-mono text-slate-300">admin123456</span></p>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -120,7 +150,7 @@ export const AdminLoginPage: React.FC = () => {
             {submitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Authenticating with MySQL...</span>
+                <span>Authenticating Secure Session...</span>
               </>
             ) : (
               <span>Sign In to Dashboard</span>

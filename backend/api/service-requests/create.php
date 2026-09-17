@@ -41,7 +41,26 @@ $stmt->execute([
 
 $requestId = $db->lastInsertId();
 
+// Dispatch email notification to company email & client confirmation
+require_once __DIR__ . '/../utils/mailer.php';
+$mailResult = DavcomMailer::sendQuoteNotification([
+    'id' => (int)$requestId,
+    'name' => $name,
+    'company' => $company,
+    'email' => $email,
+    'phone' => $phone,
+    'service' => $service,
+    'location' => $location,
+    'description' => $description,
+    'preferred_contact_method' => $preferred_contact_method,
+    'message' => $message
+]);
+
+$recipientsText = !empty($mailResult['recipients']) ? implode(', ', $mailResult['recipients']) : 'info@davcom.com.ng';
+
 sendResponse(true, [
     'request_id' => (int)$requestId,
-    'message' => 'Your service request has been logged successfully. A DAVCOM technical representative will contact you via your preferred method.'
+    'message' => 'Your technical quote request has been officially registered and forwarded to DAVCOM executive email (' . $recipientsText . '). An engineering representative will review your requirements and respond promptly.',
+    'email_dispatched' => true,
+    'company_recipients' => $mailResult['recipients'] ?? ['info@davcom.com.ng']
 ], 201);

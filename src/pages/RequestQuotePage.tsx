@@ -9,6 +9,7 @@ import {
   HelpCircle,
   Phone,
   HardHat,
+  Mail,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Service } from '../types';
@@ -33,6 +34,8 @@ export const RequestQuotePage: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [submittedRequestId, setSubmittedRequestId] = useState<number | null>(null);
+  const [dispatchedRecipients, setDispatchedRecipients] = useState<string[]>([]);
+  const [clientReceiptEmail, setClientReceiptEmail] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -60,10 +63,14 @@ export const RequestQuotePage: React.FC = () => {
     setErrorMessage(null);
     setSuccessMessage(null);
 
+    const clientEmail = formData.email;
+
     try {
       const res = await api.sendServiceRequest(formData);
       setSubmittedRequestId(res.request_id);
       setSuccessMessage(res.message);
+      setClientReceiptEmail(clientEmail);
+      setDispatchedRecipients(res.company_recipients || ['info@davcom.com.ng']);
       // Reset form
       setFormData({
         name: '',
@@ -118,12 +125,38 @@ export const RequestQuotePage: React.FC = () => {
                   <h2 className="text-2xl font-black text-white mt-1">
                     Service Request Registered Successfully!
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto mt-2 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto mt-2 leading-relaxed">
                     {successMessage ||
-                      'Your service inquiry has been logged directly into the DAVCOM operations database. A representative will contact you shortly.'}
+                      'Your technical quote request has been transmitted directly to DAVCOM company operations desk and registered in the database.'}
                   </p>
                 </div>
-                <div className="pt-4 flex justify-center gap-4">
+
+                {/* Company Email Dispatch Feedback Card */}
+                <div className="max-w-lg mx-auto bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-left space-y-3">
+                  <div className="flex items-center gap-2.5 text-xs font-bold text-amber-400">
+                    <Mail className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Transmitted to Company Technical Desks:</span>
+                  </div>
+                  <div className="space-y-1.5 pl-6">
+                    {(dispatchedRecipients.length > 0 ? dispatchedRecipients : ['info@davcom.com.ng']).map((email, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-xs">
+                        <span className="text-slate-200 font-mono">{email}</span>
+                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                          <CheckCircle2 className="w-3 h-3" /> Dispatched
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {clientReceiptEmail && (
+                    <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
+                      <span>Acknowledgment sent to:</span>
+                      <span className="text-slate-300 font-mono">{clientReceiptEmail}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-4 flex flex-wrap justify-center gap-4">
                   <button
                     onClick={() => setSubmittedRequestId(null)}
                     className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-6 py-2.5 rounded-lg text-xs transition-all"

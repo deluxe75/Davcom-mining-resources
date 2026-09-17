@@ -4,10 +4,11 @@ import { api } from '../services/api';
 
 interface AuthContextType {
   user: AdminUser | null;
+  admin: AdminUser | null;
   token: string | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (token: string, user: AdminUser) => void;
+  login: (emailOrToken: string, passwordOrUser?: string | AdminUser) => Promise<void> | void;
   logout: () => Promise<void>;
 }
 
@@ -15,8 +16,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AdminUser | null>(() => {
-    const saved = localStorage.getItem('davcom_admin_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('davcom_admin_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      localStorage.removeItem('davcom_admin_user');
+      return null;
+    }
   });
   const [token, setToken] = useState<string | null>(() => {
     return localStorage.getItem('davcom_admin_token');
@@ -45,11 +51,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const login = (newToken: string, newUser: AdminUser) => {
-    localStorage.setItem('davcom_admin_token', newToken);
-    localStorage.setItem('davcom_admin_user', JSON.stringify(newUser));
-    setToken(newToken);
-    setUser(newUser);
+  const login = async (emailOrToken: string, passwordOrUser?: string | AdminUser) => {
+    if (typeof passwordOrUser === 'string') {
+      // Called with email and password
+      const res = await api.login(emailOrToken, passwordOrUser);
+      localStorage.setItem('davcom_admin_token', res.token);
+      localStorage.setItem('davcom_admin_user', JSON.stringify(res.admin));
+      setToken(res.token);
+      setUser(res.admin);
+    } else if (passwordOrUser && typeof passwordOrUser === 'object') {
+      // Called with token and user object
+      localStorage.setItem('davcom_admin_token', emailOrToken);
+      localStorage.setItem('davcom_admin_user', JSON.stringify(passwordOrUser));
+      setToken(emailOrToken);
+      setUser(passwordOrUser);
+    }
   };
 
   const logout = async () => {
@@ -66,6 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user,
+        admin: user,
         token,
         isAuthenticated: !!token && !!user,
         loading,

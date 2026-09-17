@@ -32,6 +32,11 @@ export const AdminRequestsManager: React.FC = () => {
   const [adminNotes, setAdminNotes] = useState<string>('');
   const [savingUpdate, setSavingUpdate] = useState(false);
 
+  // Email resend / forward state
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [forwardEmailInput, setForwardEmailInput] = useState('');
+  const [emailStatusMsg, setEmailStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   const loadRequests = async () => {
     setLoading(true);
     try {
@@ -52,6 +57,45 @@ export const AdminRequestsManager: React.FC = () => {
     setSelectedRequest(req);
     setUpdateStatus(req.status);
     setAdminNotes(req.admin_notes || '');
+    setForwardEmailInput('');
+    setEmailStatusMsg(null);
+  };
+
+  const handleResendEmail = async (requestId: number, customEmail?: string) => {
+    setResendingEmail(true);
+    setEmailStatusMsg(null);
+    try {
+      const res = await api.resendServiceRequestEmail(requestId, customEmail);
+      setEmailStatusMsg({
+        type: 'success',
+        text: res.message || 'Quotation notification dispatched successfully!',
+      });
+      setFeedback({
+        type: 'success',
+        message: res.message || 'Quotation email sent successfully!',
+      });
+      await loadRequests();
+      // Update selectedRequest email dispatched status in state
+      if (selectedRequest && selectedRequest.id === requestId) {
+        setSelectedRequest((prev) =>
+          prev
+            ? {
+                ...prev,
+                email_dispatched: 1,
+                email_dispatched_to: customEmail || prev.email_dispatched_to || 'info@davcom.com.ng',
+                email_dispatched_at: new Date().toISOString(),
+              }
+            : null
+        );
+      }
+    } catch (err: any) {
+      setEmailStatusMsg({
+        type: 'error',
+        text: err.message || 'Failed to dispatch email. Please check configuration.',
+      });
+    } finally {
+      setResendingEmail(false);
+    }
   };
 
   const handleUpdateStatus = async (e: React.FormEvent) => {
@@ -158,6 +202,7 @@ export const AdminRequestsManager: React.FC = () => {
                   <th className="py-3 px-4">Service Required</th>
                   <th className="py-3 px-4">Site Location</th>
                   <th className="py-3 px-4">Contact</th>
+                  <th className="py-3 px-4">Email Routing</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-right">Action</th>
                 </tr>
@@ -179,6 +224,27 @@ export const AdminRequestsManager: React.FC = () => {
                         <span className="text-white">{req.phone}</span>
                         <span className="text-slate-400">{req.email}</span>
                       </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      {req.email_dispatched ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 w-fit">
+                            <CheckCircle2 className="w-3 h-3" /> Sent to Company
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono truncate max-w-[140px]" title={req.email_dispatched_to || 'info@davcom.com.ng'}>
+                            {req.email_dispatched_to || 'info@davcom.com.ng'}
+                          </span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleResendEmail(req.id)}
+                          disabled={resendingEmail}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30 transition-colors"
+                          title="Dispatch quotation to company email"
+                        >
+                          <Mail className="w-3 h-3" /> Send to Email
+                        </button>
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <span
@@ -286,6 +352,85 @@ export const AdminRequestsManager: React.FC = () => {
                 </p>
               </div>
             )}
+
+            {/* Company Email Notification & Forwarding Section */}
+            <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3 text-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase">
+                  <Mail className="w-4 h-4 text-amber-400" />
+                  <span>Company Email Notification Status</span>
+                </div>
+                {selectedRequest.email_dispatched ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Dispatched to Company
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                    <Clock className="w-3.5 h-3.5" /> Ready for Dispatch
+                  </span>
+                )}
+              </div>
+
+              <div className="text-slate-400 text-xs">
+                <p>
+                  Target Recipient(s):{' '}
+                  <span className="text-white font-mono font-semibold">
+                    {selectedRequest.email_dispatched_to || 'info@davcom.com.ng'}
+                  </span>
+                </p>
+                {selectedRequest.email_dispatched_at && (
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Dispatched at: {new Date(selectedRequest.email_dispatched_at).toLocaleString()}
+                  </p>
+                )}
+              </div>
+
+              {emailStatusMsg && (
+                <div
+                  className={`p-2.5 rounded text-xs flex items-center gap-2 ${
+                    emailStatusMsg.type === 'success'
+                      ? 'bg-emerald-950/50 text-emerald-300 border border-emerald-800/60'
+                      : 'bg-red-950/50 text-red-300 border border-red-800/60'
+                  }`}
+                >
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{emailStatusMsg.text}</span>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleResendEmail(selectedRequest.id)}
+                  disabled={resendingEmail}
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  {resendingEmail ? 'Sending...' : 'Resend to Company Email'}
+                </button>
+
+                <div className="flex-1 flex gap-2">
+                  <input
+                    type="email"
+                    placeholder="Forward to another email (e.g. director@davcom.com)..."
+                    value={forwardEmailInput}
+                    onChange={(e) => setForwardEmailInput(e.target.value)}
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-amber-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!forwardEmailInput.trim()) return;
+                      handleResendEmail(selectedRequest.id, forwardEmailInput.trim());
+                    }}
+                    disabled={resendingEmail || !forwardEmailInput.trim()}
+                    className="bg-slate-800 hover:bg-slate-700 text-white font-medium px-3 py-1.5 rounded text-xs transition-colors disabled:opacity-40 flex items-center gap-1"
+                  >
+                    <Send className="w-3 h-3" /> Forward
+                  </button>
+                </div>
+              </div>
+            </div>
 
             {/* Status Update Form */}
             <form onSubmit={handleUpdateStatus} className="space-y-4 pt-4 border-t border-slate-800 text-xs">

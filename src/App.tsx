@@ -38,7 +38,9 @@ export default function App() {
 
           {/* Admin Management Routes */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin" element={<AdminDashboard initialTab="csharp" />} />
+          <Route path="/admin/csharp" element={<AdminDashboard initialTab="csharp" />} />
+          <Route path="/admin/super" element={<AdminDashboard initialTab="super" />} />
 
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />

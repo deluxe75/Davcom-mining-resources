@@ -27,6 +27,9 @@ if (strpos($uri, '/uploads/') === 0 || strpos($uri, '/backend/uploads/') === 0) 
 // Normalize URI prefix
 $cleanPath = preg_replace('#^/backend#', '', $uri);
 $cleanPath = rtrim($cleanPath, '/');
+if ($cleanPath !== '' && strpos($cleanPath, '/api') !== 0) {
+    $cleanPath = '/api' . $cleanPath;
+}
 
 // Direct PHP file match
 $directFile = __DIR__ . $cleanPath;
@@ -79,8 +82,16 @@ $routes = [
     '#^/api/service-requests/all$#' => '/api/service-requests/index.php',
     '#^/api/service-requests/update-status$#' => '/api/service-requests/update-status.php',
     '#^/api/service-requests/delete$#' => '/api/service-requests/delete.php',
+    '#^/api/service-requests/resend-email$#' => '/api/service-requests/resend-email.php',
 
     '#^/api/dashboard/stats$#' => '/api/dashboard/stats.php',
+
+    '#^/api/admin/users$#' => '/api/admin/users.php',
+    '#^/api/admin/delete-user$#' => '/api/admin/delete-user.php',
+    '#^/api/admin/settings$#' => '/api/admin/settings.php',
+    '#^/api/admin/system$#' => '/api/admin/system.php',
+    '#^/api/admin/test-email$#' => '/api/admin/test-email.php',
+    '#^/api/admin/email-logs$#' => '/api/admin/email-logs.php',
 ];
 
 foreach ($routes as $pattern => $target) {

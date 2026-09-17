@@ -23,15 +23,22 @@ import { AdminEquipmentManager } from '../../components/admin/AdminEquipmentMana
 import { AdminGalleryManager } from '../../components/admin/AdminGalleryManager';
 import { AdminRequestsManager } from '../../components/admin/AdminRequestsManager';
 import { AdminMessagesManager } from '../../components/admin/AdminMessagesManager';
+import { SuperAdminDashboard } from '../../components/admin/SuperAdminDashboard';
+import { CSharpAdminDashboard } from '../../components/admin/CSharpAdminDashboard';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { ShieldCheck, Code2 } from 'lucide-react';
 
-type TabKey = 'stats' | 'projects' | 'equipment' | 'gallery' | 'requests' | 'messages';
+export type TabKey = 'csharp' | 'super' | 'stats' | 'projects' | 'equipment' | 'gallery' | 'requests' | 'messages';
 
-export const AdminDashboard: React.FC = () => {
+interface AdminDashboardProps {
+  initialTab?: TabKey;
+}
+
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'stats' }) => {
   const { admin, isAuthenticated, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<TabKey>('stats');
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
 
@@ -77,17 +84,23 @@ export const AdminDashboard: React.FC = () => {
     return null;
   }
 
-  const tabs: { key: TabKey; label: string; icon: React.ReactNode; badge?: number }[] = [
+  const tabs: { key: TabKey; label: string; icon: React.ReactNode; badge?: number; highlight?: boolean }[] = [
     {
       key: 'stats',
-      label: 'Overview & Stats',
+      label: 'Executive Overview',
       icon: <LayoutDashboard className="w-4 h-4" />,
     },
     {
       key: 'requests',
-      label: 'Service Requests',
-      icon: <FileText className="w-4 h-4" />,
+      label: 'Quote & Service Requests',
+      icon: <FileText className="w-4 h-4 text-amber-400" />,
       badge: stats?.counts.pending_requests || undefined,
+    },
+    {
+      key: 'super',
+      label: 'Corporate & Mail Controls',
+      icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />,
+      highlight: true,
     },
     {
       key: 'messages',
@@ -109,6 +122,11 @@ export const AdminDashboard: React.FC = () => {
       key: 'gallery',
       label: 'Field Gallery',
       icon: <Images className="w-4 h-4" />,
+    },
+    {
+      key: 'csharp',
+      label: 'Enterprise .NET Engine',
+      icon: <Code2 className="w-4 h-4 text-purple-400" />,
     },
   ];
 
@@ -206,6 +224,10 @@ export const AdminDashboard: React.FC = () => {
 
         {/* Tab Views */}
         <div>
+          {activeTab === 'csharp' && <CSharpAdminDashboard />}
+
+          {activeTab === 'super' && <SuperAdminDashboard />}
+
           {activeTab === 'stats' && (
             statsLoading ? (
               <LoadingSpinner message="Loading live operational metrics..." />

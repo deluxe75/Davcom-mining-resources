@@ -79,12 +79,57 @@ export interface ServiceRequest {
   admin_notes?: string;
   status: string;
   created_at?: string;
+  email_dispatched?: number | boolean;
+  email_dispatched_to?: string;
+  email_dispatched_at?: string;
+}
+
+export interface EmailLog {
+  id: number;
+  recipient: string;
+  sender: string;
+  subject: string;
+  email_type: string;
+  request_id?: number | null;
+  status: string;
+  details?: string;
+  body_preview?: string;
+  created_at: string;
 }
 
 export interface AdminUser {
   id: number;
   name: string;
   email: string;
+  role?: 'super_admin' | 'admin' | string;
+  designation?: string;
+  created_at?: string;
+}
+
+export interface CompanySettings {
+  company_name: string;
+  registration_rc: string;
+  hotline_1: string;
+  hotline_2: string;
+  hotline_3: string;
+  official_email: string;
+  head_office: string;
+  operating_hours: string;
+  mining_license_status: string;
+  quarry_location: string;
+  [key: string]: string;
+}
+
+export interface SystemDiagnostics {
+  driver: string;
+  php_version: string;
+  server_software: string;
+  database_name: string;
+  table_counts: Record<string, number>;
+  total_database_records: number;
+  memory_usage_mb: number;
+  server_time: string;
+  uptime_status: string;
 }
 
 export interface ApiResponse<T = any> {

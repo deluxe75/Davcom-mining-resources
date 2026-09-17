@@ -192,11 +192,3 @@ INSERT INTO `gallery` (`title`, `caption`, `category`, `image_path`) VALUES
 ('Excavation and Earthworks', 'Heavy excavation fleet at work on road foundation', 'construction', '/uploads/gallery_earthworks.jpg'),
 ('Diamond Wire Saw Cutting', 'Precision granite dimensional stone cutting', 'mining', '/uploads/gallery_diamond.jpg'),
 ('Soil Mechanics Testing', 'On-site geotechnical core sampling and SPT testing', 'engineering', '/uploads/gallery_soil.jpg');
-
--- Sample Initial Enquiry (Demonstrating Real Database Statuses)
-INSERT INTO `contact_messages` (`name`, `email`, `phone`, `company`, `subject`, `message`, `status`) VALUES
-('Alhaji Ibrahim Danladi', 'idanladi@constructionng.com', '+2348023456789', 'Danladi Infra Ltd', 'Quarry Aggregate Supply Inquiry', 'We require regular monthly delivery of 3/4 inch granite aggregate for a federal highway contract in Abuja. Please provide pricing and haulage terms.', 'New');
-
--- Sample Initial Service Request
-INSERT INTO `service_requests` (`name`, `company`, `email`, `phone`, `service`, `location`, `description`, `preferred_contact_method`, `message`, `status`) VALUES
-('Engr. Chinedu Okafor', 'Primecrest Engineering', 'cokafor@primecrest.ng', '+2348098765432', 'Rock Drilling & Blasting', 'Keffi, Nasarawa State', 'Controlled blasting required for 45,000 cubic meters of granite formation along a new bypass route.', 'phone', 'Please dispatch an engineer for on-site assessment as soon as possible.', 'Pending');

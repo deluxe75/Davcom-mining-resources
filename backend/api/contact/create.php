@@ -33,6 +33,17 @@ $stmt->execute([
     'message' => htmlspecialchars($message, ENT_QUOTES, 'UTF-8')
 ]);
 
+// Dispatch email notification to company email
+require_once __DIR__ . '/../utils/mailer.php';
+DavcomMailer::sendContactNotification([
+    'name' => $name,
+    'email' => $email,
+    'phone' => $phone,
+    'company' => $company,
+    'subject' => $subject,
+    'message' => $message
+]);
+
 sendResponse(true, [
-    'message' => 'Your message has been sent successfully. Our team will review your inquiry and respond promptly.'
+    'message' => 'Your message has been sent successfully to DAVCOM executive desk. Our team will review your inquiry and respond promptly.'
 ], 201);
