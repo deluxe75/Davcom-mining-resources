@@ -1,8 +1,10 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/AuthContext';
 import { ScrollToTop } from './components/common/ScrollToTop';
 import { PublicLayout } from './components/layout/PublicLayout';
+import { LoadingSpinner } from './components/common/LoadingSpinner';
 
 // Public Pages
 import { HomePage } from './pages/HomePage';
@@ -17,6 +19,20 @@ import { RequestQuotePage } from './pages/RequestQuotePage';
 // Admin Pages
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
+
+function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <LoadingSpinner message="Verifying administrative session..." />
+      </div>
+    );
+  }
+
+  return isAuthenticated ? children : <Navigate to="/admin/login" replace />;
+}
 
 export default function App() {
   return (
@@ -38,9 +54,30 @@ export default function App() {
 
           {/* Admin Management Routes */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
-          <Route path="/admin" element={<AdminDashboard initialTab="csharp" />} />
-          <Route path="/admin/csharp" element={<AdminDashboard initialTab="csharp" />} />
-          <Route path="/admin/super" element={<AdminDashboard initialTab="super" />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedAdminRoute>
+                <AdminDashboard initialTab="csharp" />
+              </ProtectedAdminRoute>
+            }
+          />
+          <Route
+            path="/admin/csharp"
+            element={
+              <ProtectedAdminRoute>
+                <AdminDashboard initialTab="csharp" />
+              </ProtectedAdminRoute>
+            }
+          />
+          <Route
+            path="/admin/super"
+            element={
+              <ProtectedAdminRoute>
+                <AdminDashboard initialTab="super" />
+              </ProtectedAdminRoute>
+            }
+          />
 
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />
