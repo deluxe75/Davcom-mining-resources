@@ -8,3 +8,6 @@ coverage/
 !.env.example
 desktop_app/davcom-message-desk
 desktop_app/build/
+
+# Local Netlify folder
+.netlify
