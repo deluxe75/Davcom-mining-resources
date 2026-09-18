@@ -5,10 +5,14 @@ import { spawn, execSync } from 'child_process';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { createServer as createViteServer } from 'vite';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const runtimeDir = typeof __dirname !== 'undefined'
+  ? __dirname
+  : path.dirname(fileURLToPath(import.meta.url));
+const appRoot = path.basename(runtimeDir) === 'dist'
+  ? path.dirname(runtimeDir)
+  : runtimeDir;
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
 const PHP_PORT = 8888;
 
 // 1. Check for MariaDB/MySQL if installed
@@ -50,7 +54,7 @@ function startPhpBackend() {
 
   try {
     phpProcess = spawn('php', ['-S', `127.0.0.1:${PHP_PORT}`, 'backend/router.php'], {
-      cwd: __dirname,
+      cwd: appRoot,
       stdio: 'inherit',
     });
 
@@ -99,8 +103,8 @@ async function startServer() {
   const app = express();
 
   // Static uploads served directly by Express for high speed & zero latency
-  app.use('/uploads', express.static(path.join(__dirname, 'backend/uploads')));
-  app.use('/backend/uploads', express.static(path.join(__dirname, 'backend/uploads')));
+  app.use('/uploads', express.static(path.join(appRoot, 'backend/uploads')));
+  app.use('/backend/uploads', express.static(path.join(appRoot, 'backend/uploads')));
 
   // 3. Reverse Proxy API to PHP Backend with JSON error shielding
   const phpProxy = createProxyMiddleware({
@@ -142,7 +146,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(__dirname, 'dist');
+    const distPath = path.join(appRoot, 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));

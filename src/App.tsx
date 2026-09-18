@@ -21,7 +21,7 @@ import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 
 function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, isAdmin, loading } = useAuth();
 
   if (loading) {
     return (
@@ -31,7 +31,21 @@ function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return isAuthenticated ? children : <Navigate to="/admin/login" replace />;
+  return isAuthenticated && isAdmin ? children : <Navigate to="/admin/login" replace />;
+}
+
+function ProtectedSuperAdminRoute({ children }: { children: React.ReactNode }) {
+  const { isSuperAdmin, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <LoadingSpinner message="Verifying administrative session..." />
+      </div>
+    );
+  }
+
+  return isSuperAdmin ? children : <Navigate to="/admin" replace />;
 }
 
 export default function App() {
@@ -73,9 +87,9 @@ export default function App() {
           <Route
             path="/admin/super"
             element={
-              <ProtectedAdminRoute>
+              <ProtectedSuperAdminRoute>
                 <AdminDashboard initialTab="super" />
-              </ProtectedAdminRoute>
+              </ProtectedSuperAdminRoute>
             }
           />
 

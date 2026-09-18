@@ -7,6 +7,8 @@ interface AuthContextType {
   admin: AdminUser | null;
   token: string | null;
   isAuthenticated: boolean;
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
   loading: boolean;
   login: (emailOrToken: string, passwordOrUser?: string | AdminUser) => Promise<void> | void;
   logout: () => Promise<void>;
@@ -78,13 +80,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const isAdmin = !!user && (user.role === 'admin' || user.role === 'super_admin');
+  const isSuperAdmin = !!user && user.role === 'super_admin';
+
   return (
     <AuthContext.Provider
       value={{
         user,
         admin: user,
         token,
-        isAuthenticated: !!token && !!user,
+        isAuthenticated: !!token && isAdmin,
+        isAdmin,
+        isSuperAdmin,
         loading,
         login,
         logout,

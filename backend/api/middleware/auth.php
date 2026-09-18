@@ -34,6 +34,10 @@ function requireAdminAuth(): array {
         $admin['role'] = 'super_admin';
     }
 
+    if (!in_array($admin['role'], ['admin', 'super_admin'], true)) {
+        sendResponse(false, 'Forbidden. An administrator account is required.', 403);
+    }
+
     return $admin;
 }
 

@@ -22,6 +22,8 @@ CREATE TABLE `admins` (
   `name` VARCHAR(255) NOT NULL,
   `email` VARCHAR(255) NOT NULL UNIQUE,
   `password` VARCHAR(255) NOT NULL,
+  `role` VARCHAR(50) NOT NULL DEFAULT 'admin',
+  `designation` VARCHAR(255) NULL,
   `token` VARCHAR(255) NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -140,8 +142,8 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ==========================================================
 
 -- Admin Seed (Password is: admin123456)
-INSERT INTO `admins` (`id`, `name`, `email`, `password`) VALUES
-(1, 'Davcom Administrator', 'admin@davcom.com', '$2y$10$13BYAblghq4dWiEDejm5ZeBiR5mdaSKDZPDVku3Rkvi3.CRU240tu');
+INSERT INTO `admins` (`id`, `name`, `email`, `password`, `role`, `designation`) VALUES
+(1, 'Davcom Administrator', 'admin@davcom.com', '$2y$10$13BYAblghq4dWiEDejm5ZeBiR5mdaSKDZPDVku3Rkvi3.CRU240tu', 'super_admin', 'System Administrator');
 
 -- Services Seed
 INSERT INTO `services` (`id`, `name`, `slug`, `description`, `icon`, `image`, `status`) VALUES

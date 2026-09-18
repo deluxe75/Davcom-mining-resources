@@ -35,7 +35,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'stats' }) => {
-  const { admin, isAuthenticated, logout, loading: authLoading } = useAuth();
+  const { admin, isAuthenticated, isSuperAdmin, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
@@ -96,12 +96,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ initialTab = 'st
       icon: <FileText className="w-4 h-4 text-amber-400" />,
       badge: stats?.counts.pending_requests || undefined,
     },
-    {
-      key: 'super',
+    ...(isSuperAdmin ? [{
+      key: 'super' as TabKey,
       label: 'Corporate & Mail Controls',
       icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />,
       highlight: true,
-    },
+    }] : []),
     {
       key: 'messages',
       label: 'Enquiries / Messages',

@@ -6,3 +6,5 @@ coverage/
 *.log
 .env*
 !.env.example
+desktop_app/davcom-message-desk
+desktop_app/build/

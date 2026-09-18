@@ -9,7 +9,6 @@ import {
   HardHat,
   Award,
   CheckCircle2,
-  Lock,
 } from 'lucide-react';
 
 export const Footer: React.FC = () => {
@@ -213,13 +212,6 @@ export const Footer: React.FC = () => {
           <p>© 2026 DAVCOM MINING RESOURCES NIG LTD. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <span className="text-slate-400">RC Registered • Incorporated 2016</span>
-            <Link
-              to="/admin"
-              className="flex items-center gap-1.5 text-slate-400 hover:text-amber-400 transition-colors"
-            >
-              <Lock className="w-3 h-3" />
-              <span>Admin Portal</span>
-            </Link>
           </div>
         </div>
       </div>

@@ -7,17 +7,14 @@ import {
   Shield,
   Menu,
   X,
-  Lock,
   ChevronRight,
   HardHat,
   FileText,
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 
 export const Navbar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -65,16 +62,6 @@ export const Navbar: React.FC = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <Link
-              to="/admin"
-              id="admin-portal-link"
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-800 hover:bg-amber-500 hover:text-slate-950 transition-all text-xs font-semibold text-slate-200 border border-slate-700"
-            >
-              <Lock className="w-3 h-3 text-amber-400" />
-              <span>{isAuthenticated ? 'Admin Dashboard' : 'Admin Portal'}</span>
-            </Link>
-          </div>
         </div>
       </div>
 
@@ -179,13 +166,6 @@ export const Navbar: React.FC = () => {
               className="w-full text-center bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-md text-sm transition-all"
             >
               Request a Technical Quote
-            </Link>
-            <Link
-              to="/admin"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full text-center bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2 rounded-md text-xs border border-slate-700"
-            >
-              Admin Management Portal
             </Link>
           </div>
         </div>
