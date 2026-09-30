@@ -4,9 +4,24 @@ dist/
 coverage/
 .DS_Store
 *.log
-.env*
+
+# Environment and secrets
+.env
+.env.*
 !.env.example
+*.key
+*.pem
+
+# Local runtime data and database files
+backend/database/*.sqlite
+backend/database/*.sqlite-journal
+backend/uploads/
+public/uploads/
+uploads/
+
+# Desktop app binaries and generated files
 desktop_app/davcom-message-desk
+desktop_app/davcom-message-gui
 desktop_app/build/
 
 # Local Netlify folder
