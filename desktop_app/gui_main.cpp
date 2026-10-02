@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QAbstractItemView>
+#include <QComboBox>
 #include <QFormLayout>
 #include <QFrame>
 #include <QGridLayout>
@@ -158,11 +159,15 @@ private:
         tabs = new QTabWidget;
         enquiriesTable = createTable({"Received", "Name", "Email", "Subject", "Status"});
         requestsTable = createTable({"Received", "Name", "Company", "Service", "Status"});
+        requestsTable->setSelectionMode(QAbstractItemView::SingleSelection);
         projectsTable = createTable({"Added", "Project", "Category", "Status"});
         tabs->addTab(enquiriesTable, "Enquiries");
         tabs->addTab(requestsTable, "Service & quote requests");
         tabs->addTab(projectsTable, "Projects");
         layout->addWidget(tabs, 1);
+
+        auto* reviewPanel = createQuoteReviewPanel();
+        layout->addWidget(reviewPanel);
 
         dashboardStatus = new QLabel("Sign in to load activity.");
         dashboardStatus->setStyleSheet("color: #9ba8b2; font-size: 11px;");
@@ -175,7 +180,50 @@ private:
             passwordField->clear();
             loginStatus->setText("Signed out.");
         });
+        connect(requestsTable->selectionModel(), &QItemSelectionModel::selectionChanged, this, &MessageWindow::updateSelectedQuoteReview);
         return page;
+    }
+
+    QWidget* createQuoteReviewPanel() {
+        auto* panel = new QWidget;
+        panel->setStyleSheet("QWidget { background: #18232d; border: 1px solid #293742; border-radius: 8px; }"
+            "QLabel { color: #e7edf2; }"
+            "QPlainTextEdit { background: #0d1720; color: #e7edf2; border: 1px solid #34434f; border-radius: 6px; padding: 8px; }"
+            "QComboBox { background: #0d1720; color: #e7edf2; border: 1px solid #34434f; border-radius: 6px; padding: 8px; }"
+            "QPushButton { background: #e0a52b; color: #151b20; border: 0; border-radius: 4px; padding: 8px 12px; font-weight: 700; }");
+        auto* topLayout = new QVBoxLayout(panel);
+        topLayout->setContentsMargins(16, 14, 16, 14);
+        topLayout->setSpacing(10);
+
+        auto* header = new QHBoxLayout;
+        auto* title = new QLabel("Review selected quote request");
+        title->setStyleSheet("font-size: 16px; font-weight: 700; color: #f0b83f;");
+        header->addWidget(title);
+        header->addStretch();
+        quoteReviewLabel = new QLabel("No request selected");
+        quoteReviewLabel->setStyleSheet("color: #a6b2bb; font-size: 11px;");
+        header->addWidget(quoteReviewLabel);
+        topLayout->addLayout(header);
+
+        auto* formLayout = new QFormLayout;
+        formLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+        quoteStatusCombo = new QComboBox;
+        quoteStatusCombo->addItems({"Pending", "In Review", "Approved", "Rejected"});
+        quoteStatusCombo->setEnabled(false);
+        quoteNotesEdit = new QTextEdit;
+        quoteNotesEdit->setPlaceholderText("Add review notes, approval conditions, or reasons for rejection...");
+        quoteNotesEdit->setEnabled(false);
+        quoteNotesEdit->setMaximumHeight(110);
+        formLayout->addRow("Status", quoteStatusCombo);
+        formLayout->addRow("Admin notes", quoteNotesEdit);
+        topLayout->addLayout(formLayout);
+
+        saveQuoteButton = new QPushButton("Save review decision");
+        saveQuoteButton->setEnabled(false);
+        topLayout->addWidget(saveQuoteButton, 0, Qt::AlignRight);
+
+        connect(saveQuoteButton, &QPushButton::clicked, this, &MessageWindow::saveSelectedQuoteReview);
+        return panel;
     }
 
     QTableWidget* createTable(const QStringList& columns) {
@@ -285,8 +333,15 @@ private:
                 const QJsonValue payload = QJsonDocument::fromJson(response).object().value("data");
                 const QJsonArray dataRows = payload.isArray() ? payload.toArray() : rows;
                 table->setRowCount(dataRows.size());
+                if (table == requestsTable) {
+                    requestData.clear();
+                    requestData.reserve(dataRows.size());
+                }
                 for (int row = 0; row < dataRows.size(); ++row) {
                     const QJsonObject record = dataRows[row].toObject();
+                    if (table == requestsTable) {
+                        requestData.append(record);
+                    }
                     for (int column = 0; column < fields.size(); ++column) {
                         QString value = record.value(fields[column]).toVariant().toString();
                         if (value.isEmpty()) value = "—";
@@ -303,6 +358,72 @@ private:
             }
             reply->deleteLater();
             finishDashboardRequest();
+        });
+    }
+
+    void updateSelectedQuoteReview() {
+        if (requestsTable->selectedItems().isEmpty()) {
+            quoteReviewLabel->setText("No request selected");
+            quoteStatusCombo->setEnabled(false);
+            quoteNotesEdit->setEnabled(false);
+            saveQuoteButton->setEnabled(false);
+            quoteStatusCombo->setCurrentText("Pending");
+            quoteNotesEdit->clear();
+            return;
+        }
+
+        const int row = requestsTable->currentRow();
+        if (row < 0 || row >= requestData.size()) {
+            return;
+        }
+
+        const QJsonObject record = requestData.at(row);
+        quoteReviewLabel->setText("DMR-" + QString::number(record.value("id").toInt()));
+        quoteStatusCombo->setEnabled(true);
+        quoteNotesEdit->setEnabled(true);
+        saveQuoteButton->setEnabled(true);
+
+        const QString status = record.value("status").toString();
+        const QString normalized = status == "In Review" ? "In Review" : (status == "Approved" ? "Approved" : (status == "Rejected" ? "Rejected" : "Pending"));
+        quoteStatusCombo->setCurrentText(normalized);
+        quoteNotesEdit->setPlainText(record.value("admin_notes").toString());
+    }
+
+    void saveSelectedQuoteReview() {
+        if (requestsTable->selectedItems().isEmpty()) {
+            return;
+        }
+
+        const int row = requestsTable->currentRow();
+        if (row < 0 || row >= requestData.size()) {
+            return;
+        }
+
+        const QJsonObject record = requestData.at(row);
+        const int id = record.value("id").toInt();
+        const QString status = quoteStatusCombo->currentText();
+        const QString notes = quoteNotesEdit->toPlainText().trimmed();
+
+        saveQuoteButton->setEnabled(false);
+        dashboardStatus->setText("Saving quote review...");
+
+        QJsonObject payload;
+        payload["id"] = id;
+        payload["status"] = status;
+        payload["admin_notes"] = notes;
+
+        QNetworkReply* reply = networkManager.post(makeRequest("/service-requests/update-status"), QJsonDocument(payload).toJson(QJsonDocument::Compact));
+        connect(reply, &QNetworkReply::finished, this, [this, reply, id]() {
+            const QByteArray response = reply->readAll();
+            const int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            if (reply->error() == QNetworkReply::NoError && statusCode >= 200 && statusCode < 300) {
+                dashboardStatus->setText("Quote review saved successfully.");
+                loadDashboard();
+            } else {
+                dashboardStatus->setText(responseMessage(response, reply->errorString()));
+                saveQuoteButton->setEnabled(true);
+            }
+            reply->deleteLater();
         });
     }
 
@@ -338,6 +459,11 @@ private:
     QTableWidget* enquiriesTable;
     QTableWidget* requestsTable;
     QTableWidget* projectsTable;
+    QLabel* quoteReviewLabel = nullptr;
+    QComboBox* quoteStatusCombo = nullptr;
+    QTextEdit* quoteNotesEdit = nullptr;
+    QPushButton* saveQuoteButton = nullptr;
+    QVector<QJsonObject> requestData;
     QList<QLabel*> statValues;
     int pendingRequests = 0;
     bool loadHadError = false;

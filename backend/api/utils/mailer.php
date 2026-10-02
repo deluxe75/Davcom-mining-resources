@@ -185,6 +185,65 @@ class DavcomMailer
     }
 
     /**
+     * Notify a quote requester that their service request has been approved.
+     */
+    public static function sendApprovalNotification(array $quote, string $adminNotes = ''): array
+    {
+        $settings = self::getSettings();
+        $clientEmail = trim($quote['email'] ?? '');
+        if ($clientEmail === '' || !filter_var($clientEmail, FILTER_VALIDATE_EMAIL)) {
+            return ['success' => false, 'message' => 'Client email is missing or invalid.'];
+        }
+
+        $companyName = $settings['company_name'] ?? 'DAVCOM MINING RESOURCES NIG LTD';
+        $fromEmail = !empty($settings['smtp_from_email']) ? $settings['smtp_from_email'] : 'info@davcom.com.ng';
+        $fromName = !empty($settings['smtp_from_name']) ? $settings['smtp_from_name'] : $companyName;
+        $reqId = $quote['id'] ?? 'NEW';
+        $clientName = trim($quote['name'] ?? 'Prospective Client');
+        $serviceName = trim($quote['service'] ?? 'Service Request');
+        $location = trim($quote['location'] ?? 'Site location to be confirmed');
+        $timestamp = date('F j, Y - g:i A (T)');
+        $notes = $adminNotes !== '' ? $adminNotes : 'Your request has been assessed and approved. Our technical team will contact you to finalize the scope, schedule, and mobilization details.';
+
+        $subject = "[Approved] DMR-{$reqId} - {$serviceName} Request Approved";
+
+        $htmlBody = "<div style='font-family: Arial, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 24px;'>
+            <div style='max-width: 640px; margin: 0 auto; background-color: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden;'>
+                <div style='background-color: #f59e0b; padding: 18px 24px; color: #0f172a;'>
+                    <h2 style='margin: 0; font-size: 20px; font-weight: bold;'>{$companyName}</h2>
+                </div>
+                <div style='padding: 24px;'>
+                    <p style='margin: 0 0 10px 0; color: #fbbf24; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.08em;'>Request Approved</p>
+                    <h3 style='margin: 0 0 12px 0; color: #ffffff; font-size: 24px;'>Dear {$clientName},</h3>
+                    <p style='margin: 0 0 16px 0; color: #e2e8f0; line-height: 1.6;'>Your technical service request has been approved by the DAVCOM review team. We are pleased to proceed with the quotation and planning process for your project.</p>
+                    <table style='width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 20px;'>
+                        <tr><td style='padding: 8px 0; color: #94a3b8; width: 32%;'>Reference:</td><td style='padding: 8px 0; color: #ffffff; font-weight: bold;'>DMR-{$reqId}</td></tr>
+                        <tr><td style='padding: 8px 0; color: #94a3b8;'>Service:</td><td style='padding: 8px 0; color: #e2e8f0;'>{$serviceName}</td></tr>
+                        <tr><td style='padding: 8px 0; color: #94a3b8;'>Location:</td><td style='padding: 8px 0; color: #e2e8f0;'>{$location}</td></tr>
+                        <tr><td style='padding: 8px 0; color: #94a3b8;'>Approval Time:</td><td style='padding: 8px 0; color: #e2e8f0;'>{$timestamp}</td></tr>
+                    </table>
+                    <div style='background-color: #0f172a; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin-bottom: 18px;'>
+                        <h4 style='margin: 0 0 8px 0; color: #f59e0b; font-size: 13px; text-transform: uppercase;'>Review notes</h4>
+                        <p style='margin: 0; color: #cbd5e1; line-height: 1.6; white-space: pre-wrap;'>{$notes}</p>
+                    </div>
+                    <p style='margin: 0 0 12px 0; color: #e2e8f0; line-height: 1.6;'>Our technical and operations team will contact you soon to confirm project sequencing, mobilization details, and the next steps.</p>
+                    <p style='margin: 0; color: #cbd5e1; line-height: 1.6;'>Warm regards,<br><strong>{$companyName}</strong></p>
+                </div>
+            </div>
+        </div>";
+
+        $textBody = "Dear {$clientName},\n\nYour technical service request has been approved by the DAVCOM review team.\n\nReference: DMR-{$reqId}\nService: {$serviceName}\nLocation: {$location}\nApproval Time: {$timestamp}\n\nReview notes:\n{$notes}\n\nOur technical and operations team will contact you soon to finalize the project details and mobilization schedule.\n\nWarm regards,\n{$companyName}";
+
+        return self::dispatchMail($clientEmail, $subject, $htmlBody, $textBody, [
+            'from_email' => $fromEmail,
+            'from_name' => $fromName,
+            'request_id' => is_numeric($reqId) ? (int)$reqId : null,
+            'type' => 'quote_approved',
+            'reply_to' => $fromEmail,
+        ]);
+    }
+
+    /**
      * Dispatch general contact message to company email
      */
     public static function sendContactNotification(array $contact): array
