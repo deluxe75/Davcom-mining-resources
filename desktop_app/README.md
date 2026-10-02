@@ -42,6 +42,18 @@ cmake --build build
 ./build/davcom-message-gui
 ```
 
+## Publish a release package
+
+This project now includes CPack so it can be packaged into a distributable Linux archive:
+
+```sh
+cmake -S . -B build -DCPACK_GENERATOR=TGZ
+cmake --build build
+cpack --config build/CPackConfig.cmake
+```
+
+The generated archive will be placed in the build folder as a `.tar.gz` package.
+
 On Ubuntu/Debian, the prerequisites are typically available through `build-essential`, `cmake`, `qt6-base-dev`, and `qt6-base-dev-tools`.
 
 The default API URL is `http://127.0.0.1:3000/api/contact`. For a deployed HTTP API, configure it before starting the app:
