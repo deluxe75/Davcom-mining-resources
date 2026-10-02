@@ -128,6 +128,34 @@ export const HomePage: React.FC = () => {
               </p>
             </div>
           </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 flex items-center gap-3">
+              <Phone className="w-5 h-5 text-amber-400" />
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Call Us</p>
+                <a href="tel:+2348030000000" className="text-sm font-semibold text-white hover:text-amber-300 transition-colors">
+                  +234 803 000 0000
+                </a>
+              </div>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 flex items-center gap-3">
+              <Compass className="w-5 h-5 text-amber-400" />
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Office</p>
+                <p className="text-sm font-semibold text-white">Mabushi & Garki, Abuja</p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 flex items-center gap-3">
+              <Building className="w-5 h-5 text-amber-400" />
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Fast Response</p>
+                <Link to="/contact" className="text-sm font-semibold text-amber-300 hover:text-amber-200 transition-colors">
+                  Book a technical consultation
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
